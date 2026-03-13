@@ -17,14 +17,16 @@ if ! command -v claude &> /dev/null; then
     exit 0
 fi
 
-OUTPUT=$(claude --print "/leak-detect" 2>&1)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$HOOK_DIR")"
+
+OUTPUT=$(cd "$PROJECT_DIR" && claude --print "/leak-detect" 2>&1)
 
 echo "$OUTPUT"
 
 if echo "$OUTPUT" | grep -q "DO NOT PUSH"; then
     echo ""
     echo "COMMIT BLOCKED - Leaks detected by leak-detector skill!"
-    echo "Fix the issues above or use 'git commit --no-verify' to bypass (not recommended)."
     exit 1
 fi
 
