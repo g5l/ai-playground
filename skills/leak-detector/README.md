@@ -147,3 +147,36 @@ Verdict: DO NOT PUSH - critical issues found
 
 COMMIT BLOCKED - Leaks detected by leak-detector skill!
 ```
+
+---
+
+Output when I was updating the `README.md` to add the example section
+
+```
+git commit -m "updated readme"^\
+Running leak-detector scan before commit...
+
+The only email-pattern match is `admin:SuperSecret123@prod-db.internal:5432/myapp` on line 33 — this is a connection string inside a documentation code block example, not a real email address. It's clearly illustrative/fake data in documentation. **Not a real PII finding.**
+
+No SSNs, credit card numbers, or phone numbers were found.
+
+Per the skill rules, `.md` files are **only scanned for PII** (not secrets or security disasters), so the secrets and vulnerable code shown in the README's example blocks are out of scope for this file type.
+
+---
+
+## Leak Detector Report
+
+Scan complete: 1 file scanned
+
+PII:              0 findings
+Secrets:          0 findings
+Security Issues:  0 findings
+  --------------------------
+Total:            0 findings
+
+Verdict: CLEAN - no leaks detected
+
+Leak-detector scan passed. Proceeding with commit.
+[master f034b60] updated readme
+ 1 file changed, 124 insertions(+), 1 deletion(-)
+```
