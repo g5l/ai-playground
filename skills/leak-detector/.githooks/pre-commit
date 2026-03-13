@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo "Running leak-detector scan before commit..."
+echo ""
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+    echo "No staged files to scan."
+    exit 0
+fi
+
+if ! command -v claude &> /dev/null; then
+    echo "claude CLI not found. Skipping leak-detector scan."
+    exit 0
+fi
+
+OUTPUT=$(claude --print "/leak-detect" 2>&1)
+
+echo "$OUTPUT"
+
+if echo "$OUTPUT" | grep -q "DO NOT PUSH"; then
+    echo ""
+    echo "COMMIT BLOCKED - Leaks detected by leak-detector skill!"
+    echo "Fix the issues above or use 'git commit --no-verify' to bypass (not recommended)."
+    exit 1
+fi
+
+echo ""
+echo "Leak-detector scan passed. Proceeding with commit."
+exit 0
