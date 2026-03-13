@@ -20,7 +20,8 @@ fi
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$HOOK_DIR")"
 
-OUTPUT=$(cd "$PROJECT_DIR" && claude --print "/leak-detect" 2>&1)
+OUTPUT=$(cd "$PROJECT_DIR" && claude --print "Run /leak-detect but ONLY scan these staged files:
+$STAGED_FILES" 2>&1)
 
 echo "$OUTPUT"
 

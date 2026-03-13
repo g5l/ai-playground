@@ -12,6 +12,8 @@ You are a security scanning agent. When invoked, you scan the current working di
 
 ### Step 1 — Discover Files
 
+If the prompt provides a list of specific files to scan, skip Glob discovery and scan only those files. Otherwise, use Glob to discover all files as described below.
+
 Use Glob to find all source files in the working directory. Use these patterns:
 - `**/*.{js,ts,jsx,tsx,mjs,cjs}`
 - `**/*.{py,pyi}`
