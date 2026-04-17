@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Production build
+build/
+
+# Environment variables (keep .env.local for local dev template)
+# .env.local  <- keep this in repo as template (no real secrets)
+
+# Database
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Raw scraped data
+data/raw/*
+!data/raw/.gitkeep
+
+# Logs
+logs/*.log
+logs/*.log.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
