@@ -3,7 +3,7 @@
  */
 
 import { getDb } from "@/db/client";
-import type { Listing, ListingSource, ListingSnapshot } from "@/types/index";
+import type { Listing, ListingSource, ListingSnapshot, ScrapeRun } from "@/types/index";
 
 // ---------------------------------------------------------------------------
 // Listings
@@ -149,4 +149,63 @@ export function appendScrapeRunError(id: number, error: string): void {
     JSON.stringify(errors),
     id
   );
+}
+
+// Raw row type from SQLite (errors stored as JSON string)
+interface ScrapeRunRow {
+  id: number;
+  source: string;
+  started_at: string;
+  finished_at: string | null;
+  listings_found: number;
+  listings_new: number;
+  listings_updated: number;
+  errors: string;
+  status: "running" | "success" | "error";
+}
+
+function parseRunRow(row: ScrapeRunRow): ScrapeRun {
+  let errors: string[] = [];
+  try {
+    errors = JSON.parse(row.errors) as string[];
+  } catch {
+    errors = [];
+  }
+  return { ...row, errors };
+}
+
+export function getScrapeRuns(limit = 50): ScrapeRun[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT * FROM scrape_runs ORDER BY started_at DESC LIMIT ?`
+    )
+    .all(limit) as ScrapeRunRow[];
+  return rows.map(parseRunRow);
+}
+
+export function getScrapeRunById(id: number): ScrapeRun | null {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT * FROM scrape_runs WHERE id = ?`)
+    .get(id) as ScrapeRunRow | undefined;
+  return row ? parseRunRow(row) : null;
+}
+
+export function getListingSnapshots(listingId: string): ListingSnapshot[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT * FROM listing_snapshots WHERE listing_id = ? ORDER BY captured_at ASC`
+    )
+    .all(listingId) as ListingSnapshot[];
+}
+
+export function getListingSources(listingId: string): ListingSource[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT * FROM listing_sources WHERE listing_id = ?`
+    )
+    .all(listingId) as ListingSource[];
 }
