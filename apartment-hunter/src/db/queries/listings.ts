@@ -3,7 +3,7 @@
  */
 
 import { getDb } from "@/db/client";
-import type { Listing, ListingSource, ListingSnapshot, ScrapeRun } from "@/types/index";
+import type { Listing, ListingSource, ListingSnapshot, ScrapeRun, Ranking } from "@/types/index";
 
 // ---------------------------------------------------------------------------
 // Listings
@@ -208,4 +208,48 @@ export function getListingSources(listingId: string): ListingSource[] {
       `SELECT * FROM listing_sources WHERE listing_id = ?`
     )
     .all(listingId) as ListingSource[];
+}
+
+// ---------------------------------------------------------------------------
+// Rankings
+// ---------------------------------------------------------------------------
+
+export function upsertRanking(ranking: Ranking): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO rankings (listing_id, profile_id, score, rationale, ranked_at)
+    VALUES (@listing_id, @profile_id, @score, @rationale, @ranked_at)
+    ON CONFLICT (listing_id, profile_id) DO UPDATE SET
+      score      = excluded.score,
+      rationale  = excluded.rationale,
+      ranked_at  = excluded.ranked_at
+  `).run(ranking);
+}
+
+// ---------------------------------------------------------------------------
+// New listings today (with ranking join)
+// ---------------------------------------------------------------------------
+
+export function getNewListingsToday(): Array<
+  Listing & { score: number | null; rationale: string | null }
+> {
+  const db = getDb();
+  return db
+    .prepare(
+      `
+      SELECT
+        l.*,
+        r.score,
+        r.rationale
+      FROM listings l
+      LEFT JOIN rankings r ON r.listing_id = l.id
+        AND r.profile_id = (
+          SELECT id FROM filter_profiles WHERE is_active = 1 ORDER BY id DESC LIMIT 1
+        )
+      WHERE date(l.first_seen_at) = date('now')
+        AND l.status = 'active'
+      ORDER BY COALESCE(r.score, 0) DESC, l.first_seen_at DESC
+      `
+    )
+    .all() as Array<Listing & { score: number | null; rationale: string | null }>;
 }
