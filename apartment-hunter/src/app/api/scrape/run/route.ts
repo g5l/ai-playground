@@ -13,6 +13,7 @@ import {
   startScrapeRun,
   finishScrapeRun,
 } from "@/db/queries/listings";
+import { runRankingPass } from "@/ranking/index";
 
 // ---------------------------------------------------------------------------
 // Auth check
@@ -30,7 +31,12 @@ function isAuthorized(req: NextRequest): boolean {
 // Load active FilterProfile from DB
 // ---------------------------------------------------------------------------
 
-function loadActiveFilters(): FilterCriteria | null {
+interface ActiveProfile {
+  id: number;
+  filters: FilterCriteria;
+}
+
+function loadActiveProfile(): ActiveProfile | null {
   const db = getDb();
   const row = db
     .prepare(
@@ -41,7 +47,7 @@ function loadActiveFilters(): FilterCriteria | null {
   if (!row) return null;
 
   try {
-    return JSON.parse(row.filters) as FilterCriteria;
+    return { id: row.id, filters: JSON.parse(row.filters) as FilterCriteria };
   } catch {
     logger.error({ filters: row.filters }, "scrape/run: failed to parse filter profile");
     return null;
@@ -57,13 +63,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const filters = loadActiveFilters();
-  if (!filters) {
+  const profile = loadActiveProfile();
+  if (!profile) {
     return NextResponse.json(
       { error: "No active filter profile found in DB" },
       { status: 400 }
     );
   }
+
+  const { id: profileId, filters } = profile;
 
   const enabledSources = (
     process.env.SCRAPE_ENABLED_SOURCES ?? "vivareal"
@@ -107,6 +115,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   finishScrapeRun(runId, { ...stats, status: runStatus });
   logger.info({ runId, stats, status: runStatus }, "scrape/run: finished");
+
+  // Run ranking pass — errors must not affect the scrape response
+  try {
+    const rankingResult = await runRankingPass(profileId, filters);
+    logger.info({ rankingResult }, "scrape/run: ranking complete");
+  } catch (rankErr) {
+    logger.error({ rankErr }, "scrape/run: ranking pass failed (non-fatal)");
+  }
 
   return NextResponse.json({ success: true, stats });
 }

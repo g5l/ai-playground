@@ -9,6 +9,7 @@ import {
   Divider,
   Anchor,
   SimpleGrid,
+  Tooltip,
 } from "@mantine/core";
 import {
   IconRuler,
@@ -22,6 +23,10 @@ import type { Listing } from "@/types";
 interface ListingCardProps {
   listing: Listing;
   isNew?: boolean;
+  score?: number;
+  rationale?: string;
+  isPriceDrop?: boolean;
+  isRelisted?: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -32,7 +37,20 @@ function formatCurrency(value: number): string {
   });
 }
 
-export function ListingCard({ listing, isNew = false }: ListingCardProps) {
+function scoreBadgeColor(score: number): string {
+  if (score >= 70) return "green";
+  if (score >= 40) return "yellow";
+  return "red";
+}
+
+export function ListingCard({
+  listing,
+  isNew = false,
+  score,
+  rationale,
+  isPriceDrop = false,
+  isRelisted = false,
+}: ListingCardProps) {
   const totalMonthly = listing.condo_fee + listing.iptu;
 
   return (
@@ -42,11 +60,40 @@ export function ListingCard({ listing, isNew = false }: ListingCardProps) {
         <Text fw={600} size="md" lineClamp={2} style={{ flex: 1 }}>
           {listing.title}
         </Text>
-        {isNew && (
-          <Badge color="green" variant="filled" size="sm" ml="xs">
-            NOVO
-          </Badge>
-        )}
+        <Group gap={4} wrap="nowrap">
+          {isNew && (
+            <Badge color="green" variant="filled" size="sm">
+              NOVO
+            </Badge>
+          )}
+          {isPriceDrop && (
+            <Badge color="orange" variant="filled" size="sm">
+              QUEDA DE PREÇO
+            </Badge>
+          )}
+          {isRelisted && (
+            <Badge color="blue" variant="filled" size="sm">
+              REANUNCIADO
+            </Badge>
+          )}
+          {score !== undefined && (
+            <Tooltip
+              label={rationale ?? "Sem análise disponível"}
+              multiline
+              maw={260}
+              withArrow
+            >
+              <Badge
+                color={scoreBadgeColor(score)}
+                variant="light"
+                size="sm"
+                style={{ cursor: "help" }}
+              >
+                {score} pts
+              </Badge>
+            </Tooltip>
+          )}
+        </Group>
       </Group>
 
       {/* Location */}
