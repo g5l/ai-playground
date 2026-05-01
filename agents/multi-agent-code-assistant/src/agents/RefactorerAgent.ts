@@ -67,22 +67,18 @@ export class RefactorerAgent extends Agent {
           "Validating refactored code quality"
         );
 
-        const validationTask = this.createSubTask("analyze", task.code, {
+        const validationTask = this.createSubTask("analyze", refactoredOutput, {
           purpose:
-            "Validate that the refactored code below is an improvement over the original. " +
+            "Validate that this refactored code is an improvement over the original. " +
             "Focus on whether the identified issues were addressed.",
           previousAnalysis: task.context?.analysis as string,
-          refactoredCode: refactoredOutput,
         });
 
-        const validationResult =
-          await this.analyzerSubAgent.execute(validationTask);
+        const validationResult = await this.analyzerSubAgent.execute(validationTask);
         subResults.push(validationResult);
 
         if (validationResult.success) {
-          logger.info(
-            "Validation complete — sub-agent confirmed refactoring quality"
-          );
+          logger.info("Validation complete — sub-agent confirmed refactoring quality");
         }
       }
 

@@ -1,10 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { OpenAIClient } from "../llm/OpenAIClient.js";
-import type {
-  AgentResult,
-  AgentTask,
-  ExecutionPlan,
-} from "../types/index.js";
+import type { AgentResult, AgentTask, ExecutionPlan } from "../types/index.js";
 import { logger } from "../utils/logger.js";
 import { Agent } from "../agents/Agent.js";
 import { AnalyzerAgent } from "../agents/AnalyzerAgent.js";
@@ -91,9 +87,7 @@ export class Orchestrator extends Agent {
       const cleaned = response.replace(/```json\s*|```\s*/g, "").trim();
       const plan = JSON.parse(cleaned) as ExecutionPlan;
 
-      plan.steps = plan.steps.filter((step) =>
-        this.workers.has(step.agentType)
-      );
+      plan.steps = plan.steps.filter((step) => this.workers.has(step.agentType));
 
       if (plan.steps.length === 0) {
         return this.defaultPlan();
@@ -108,18 +102,25 @@ export class Orchestrator extends Agent {
 
   // Core orchestration logic. Each step's output becomes context for
   // the next step — this is what makes agents truly collaborative.
-  private async executePlan(
-    plan: ExecutionPlan,
-    originalTask: AgentTask
-  ): Promise<AgentResult[]> {
+  private async executePlan(plan: ExecutionPlan, originalTask: AgentTask): Promise<AgentResult[]> {
     const results: AgentResult[] = [];
     const sharedContext: Record<string, unknown> = {
       userRequest: originalTask.context?.userRequest,
     };
 
+    // Track which agent types succeeded, to gate dependency checks
+    const succeeded = new Set<string>();
+
     for (const step of plan.steps) {
       const worker = this.workers.get(step.agentType);
       if (!worker) continue;
+
+      // Skip this step if any dependency failed
+      const blockedBy = step.dependsOn?.find((dep) => !succeeded.has(dep));
+      if (blockedBy) {
+        logger.info(`Skipping [${step.agentType}] — dependency [${blockedBy}] did not succeed`);
+        continue;
+      }
 
       const stepContext = { ...sharedContext };
 
@@ -129,8 +130,7 @@ export class Orchestrator extends Agent {
 
       if (step.agentType === "test") {
         if (sharedContext.analysis) stepContext.analysis = sharedContext.analysis;
-        if (sharedContext.refactoredCode)
-          stepContext.refactoredCode = sharedContext.refactoredCode;
+        if (sharedContext.refactoredCode) stepContext.refactoredCode = sharedContext.refactoredCode;
       }
 
       const workerTask: AgentTask = {
@@ -147,6 +147,7 @@ export class Orchestrator extends Agent {
 
       // Feed output into shared context for downstream agents
       if (result.success) {
+        succeeded.add(step.agentType);
         if (step.agentType === "analyze") {
           sharedContext.analysis = result.output;
         } else if (step.agentType === "refactor") {
@@ -160,10 +161,7 @@ export class Orchestrator extends Agent {
     return results;
   }
 
-  private aggregateResults(
-    plan: ExecutionPlan,
-    results: AgentResult[]
-  ): string {
+  private aggregateResults(plan: ExecutionPlan, results: AgentResult[]): string {
     const sections: string[] = [];
 
     sections.push(`# Code Assistant Report`);
@@ -172,16 +170,12 @@ export class Orchestrator extends Agent {
     for (const result of results) {
       const status = result.success ? "✅" : "❌";
       sections.push(`---`);
-      sections.push(
-        `## ${status} ${result.agentName} (${result.durationMs}ms)\n`
-      );
+      sections.push(`## ${status} ${result.agentName} (${result.durationMs}ms)\n`);
       sections.push(result.output);
 
       if (result.subResults?.length) {
         for (const sub of result.subResults) {
-          sections.push(
-            `\n### ↳ Sub-agent: ${sub.agentName} (${sub.durationMs}ms)\n`
-          );
+          sections.push(`\n### ↳ Sub-agent: ${sub.agentName} (${sub.durationMs}ms)\n`);
           sections.push(sub.output);
         }
       }

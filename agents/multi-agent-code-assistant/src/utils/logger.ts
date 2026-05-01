@@ -20,7 +20,7 @@ export const logger = {
   agentStart(agentName: string, taskType: string): void {
     console.log(
       `${indent()}${COLORS.cyan}${COLORS.bright}▶ [${agentName}]${COLORS.reset} ` +
-      `Starting task: ${COLORS.yellow}${taskType}${COLORS.reset}`
+        `Starting task: ${COLORS.yellow}${taskType}${COLORS.reset}`
     );
     indentLevel++;
   },
@@ -32,14 +32,12 @@ export const logger = {
       : `${COLORS.red}✗ FAILED${COLORS.reset}`;
     console.log(
       `${indent()}${COLORS.cyan}${COLORS.bright}◀ [${agentName}]${COLORS.reset} ` +
-      `${status} ${COLORS.dim}(${durationMs}ms)${COLORS.reset}`
+        `${status} ${COLORS.dim}(${durationMs}ms)${COLORS.reset}`
     );
   },
 
   plan(summary: string, steps: { agentType: string; description: string }[]): void {
-    console.log(
-      `\n${indent()}${COLORS.magenta}${COLORS.bright}📋 Execution Plan${COLORS.reset}`
-    );
+    console.log(`\n${indent()}${COLORS.magenta}${COLORS.bright}📋 Execution Plan${COLORS.reset}`);
     console.log(`${indent()}${COLORS.dim}${summary}${COLORS.reset}`);
     steps.forEach((step, i) => {
       console.log(
@@ -52,7 +50,7 @@ export const logger = {
   delegate(parentAgent: string, childAgent: string, reason: string): void {
     console.log(
       `${indent()}${COLORS.yellow}↳ [${parentAgent}]${COLORS.reset} delegating to ` +
-      `${COLORS.cyan}[${childAgent}]${COLORS.reset}: ${reason}`
+        `${COLORS.cyan}[${childAgent}]${COLORS.reset}: ${reason}`
     );
   },
 
@@ -68,14 +66,8 @@ export const logger = {
   },
 
   finalOutput(): void {
-    console.log(
-      `\n${COLORS.green}${COLORS.bright}${"═".repeat(60)}${COLORS.reset}`
-    );
-    console.log(
-      `${COLORS.green}${COLORS.bright}  AGGREGATED RESULT${COLORS.reset}`
-    );
-    console.log(
-      `${COLORS.green}${COLORS.bright}${"═".repeat(60)}${COLORS.reset}\n`
-    );
+    console.log(`\n${COLORS.green}${COLORS.bright}${"═".repeat(60)}${COLORS.reset}`);
+    console.log(`${COLORS.green}${COLORS.bright}  AGGREGATED RESULT${COLORS.reset}`);
+    console.log(`${COLORS.green}${COLORS.bright}${"═".repeat(60)}${COLORS.reset}\n`);
   },
 };

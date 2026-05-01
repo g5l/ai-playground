@@ -35,8 +35,7 @@ export class TesterAgent extends Agent {
 
   async execute(task: AgentTask): Promise<AgentResult> {
     return this.withTracking(task, async () => {
-      const codeToTest =
-        (task.context?.refactoredCode as string) ?? task.code;
+      const codeToTest = (task.context?.refactoredCode as string) ?? task.code;
       const isRefactored = !!task.context?.refactoredCode;
 
       let userMessage = `Please write comprehensive unit tests for the following ${isRefactored ? "refactored " : ""}code:\n\n\`\`\`\n${codeToTest}\n\`\`\``;

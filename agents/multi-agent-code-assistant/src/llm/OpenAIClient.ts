@@ -30,10 +30,7 @@ export class OpenAIClient {
     this.defaultMaxTokens = config.defaultMaxTokens ?? 4096;
   }
 
-  async complete(
-    messages: LLMMessage[],
-    options: CompletionOptions = {}
-  ): Promise<string> {
+  async complete(messages: LLMMessage[], options: CompletionOptions = {}): Promise<string> {
     const model = options.model ?? this.defaultModel;
     const temperature = options.temperature ?? this.defaultTemperature;
     const maxTokens = options.maxTokens ?? this.defaultMaxTokens;
