@@ -14,7 +14,6 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconHome,
-  IconList,
   IconSettings,
   IconActivity,
   IconSun,
@@ -23,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 interface NavItem {
   href: string;
@@ -57,6 +57,8 @@ export function AppShellLayout({ children }: { children: React.ReactNode }) {
   const [opened, { toggle }] = useDisclosure();
   const pathname = usePathname();
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const appName =
     process.env.NEXT_PUBLIC_APP_NAME ?? "Apartment Hunter POA";
@@ -97,7 +99,7 @@ export function AppShellLayout({ children }: { children: React.ReactNode }) {
             size="lg"
             aria-label="Alternar tema"
           >
-            {colorScheme === "dark" ? (
+            {mounted && colorScheme === "dark" ? (
               <IconSun size={20} />
             ) : (
               <IconMoon size={20} />
