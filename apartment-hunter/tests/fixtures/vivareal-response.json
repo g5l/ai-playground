@@ -1,0 +1,113 @@
+{
+  "search": {
+    "result": {
+      "listings": [
+        {
+          "listing": {
+            "id": "abc-001",
+            "title": "Apartamento 3 quartos à venda em Moinhos de Vento",
+            "description": "Lindo apartamento com piso porcelanato, cozinha americana, sol da manhã. Academia, piscina e salão de festas. Portaria 24h.",
+            "listingType": "USED",
+            "address": {
+              "city": "Porto Alegre",
+              "neighborhood": "Moinhos de Vento",
+              "street": "Rua Padre Chagas",
+              "streetNumber": "100",
+              "complement": "Ap 301",
+              "point": { "lat": -30.0346, "lon": -51.2177 }
+            },
+            "pricingInfos": [
+              {
+                "businessType": "SALE",
+                "price": "750000",
+                "monthlyCondoFee": "1200",
+                "yearlyIptu": "4800"
+              }
+            ],
+            "usableAreas": [95],
+            "bedrooms": [3],
+            "suites": [1],
+            "parkingSpaces": [2],
+            "unitFloor": 3,
+            "amenities": ["POOL", "GYM", "PARTY_HALL"]
+          },
+          "medias": [
+            { "url": "https://resizedimgs.vivareal.com/fit-in/1200x900/abc-001-01.jpg" }
+          ]
+        },
+        {
+          "listing": {
+            "id": "abc-002",
+            "title": "Apartamento 2 quartos Petrópolis",
+            "description": "",
+            "listingType": "PRIMARY",
+            "address": {
+              "city": "Porto Alegre",
+              "neighborhood": "Petrópolis",
+              "street": "Rua Schiller",
+              "streetNumber": "200",
+              "complement": "",
+              "point": null
+            },
+            "pricingInfos": [
+              {
+                "businessType": "SALE",
+                "price": "480000",
+                "monthlyCondoFee": null,
+                "yearlyIptu": null
+              }
+            ],
+            "usableAreas": [72],
+            "bedrooms": [2],
+            "suites": [],
+            "parkingSpaces": [],
+            "unitFloor": null,
+            "amenities": []
+          },
+          "medias": []
+        },
+        {
+          "listing": {
+            "id": "abc-003",
+            "title": "Cobertura duplex Bela Vista",
+            "description": "Cobertura com terraço privativo, churrasqueira e vista para o Guaíba. Reformado em 2023.",
+            "listingType": "USED",
+            "address": {
+              "city": "Porto Alegre",
+              "neighborhood": "Bela Vista",
+              "street": "",
+              "streetNumber": "",
+              "complement": "",
+              "point": { "lat": -30.041, "lon": -51.211 }
+            },
+            "pricingInfos": [
+              {
+                "businessType": "RENTAL",
+                "price": "5000",
+                "monthlyCondoFee": "800",
+                "yearlyIptu": "2400"
+              },
+              {
+                "businessType": "SALE",
+                "price": "890000",
+                "monthlyCondoFee": "800",
+                "yearlyIptu": "2400"
+              }
+            ],
+            "usableAreas": [130],
+            "bedrooms": [3],
+            "suites": [2],
+            "parkingSpaces": [3],
+            "unitFloor": 10,
+            "amenities": ["BARBECUE_GRILL", "POOL"]
+          },
+          "medias": [
+            { "url": "https://resizedimgs.vivareal.com/fit-in/1200x900/abc-003-01.jpg" },
+            { "url": "https://resizedimgs.vivareal.com/fit-in/1200x900/abc-003-02.jpg" }
+          ]
+        }
+      ]
+    },
+    "totalCount": 3
+  }
+}
