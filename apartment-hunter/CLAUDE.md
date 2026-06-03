@@ -8,6 +8,205 @@ A personal, automated apartment hunting tool for Porto Alegre, Brazil. It scrape
 
 ---
 
+## Phases
+
+### Phase 1 — Core App ✅
+- [x] Next.js 14 app with App Router
+- [x] SQLite schema + auto-migration runner
+- [x] VivaReal scraper (paginated JSON API, rate limiting, robots.txt)
+- [x] Ingest pipeline: normalize, deduplicate across portals, upsert
+- [x] Price snapshot history per listing
+- [x] Scrape run logging (`scrape_runs` table)
+- [x] Deterministic ranking (hard filter + 0-60pt score)
+- [x] Claude AI ranking (qualitative 0-40pt score, Portuguese rationale)
+- [x] UI: home (new listings today), `/all`, `/listing/[id]`, `/profile`, `/runs`
+
+### Phase 2 — Cloud + Automation
+- [ ] Dockerize app (or use Fly.io buildpack)
+- [ ] Deploy to Fly.io with persistent volume at `/app/data`
+- [ ] Configure all environment secrets on Fly.io
+- [ ] `GET /api/health` endpoint: DB status, last scrape run, active listing count, disk usage
+- [ ] Fly.io liveness probe pointing at `/api/health`
+- [ ] UptimeRobot (free) monitoring `/api/health` — sends alert email if app is down
+- [ ] GitHub Actions CI workflow: typecheck + lint on every push
+- [ ] GitHub Actions workflow: daily cron at 7am BRT (10:00 UTC)
+- [ ] Smoke test: manual trigger from GitHub Actions hits `/api/scrape/run`
+- [ ] Verify SQLite persists across Fly.io restarts
+- [ ] Scraper health guard in `BaseScraper`: error if returns 0 when previous run had >50
+
+### Phase 3 — Notifications
+- [ ] `Notifier` interface (`src/notifications/notifier.ts`)
+- [ ] `EmailNotifier` via Resend API (`src/notifications/email.ts`)
+- [ ] HTML email template: top 10 new listings with score, rationale, price, link
+- [ ] Auto-trigger at end of scrape run when `listings_new > 0`
+- [ ] Failure email: plain-text alert when `scrape_runs.status = error` (scraper broke, Claude unavailable, etc.)
+- [ ] Configure Resend: domain, API key, `EMAIL_TO`, `EMAIL_FROM`
+
+### Phase 4 — More Scrapers
+- [ ] ZAP Imóveis scraper (`src/scrapers/zap.ts`) — same OLX Group API as VivaReal, low effort
+- [ ] QuintoAndar scraper (`src/scrapers/quintoandar.ts`) — reverse-engineer internal GraphQL API from browser devtools, filter to sales only
+
+### Phase 5 — Data Quality
+- [ ] Wire price drop detection: compare latest vs. previous snapshot, set `isPriceDrop` flag
+- [ ] Wire relisting detection: listing reappears after `status=removed`
+- [ ] Surface `isPriceDrop` and `isRelisted` badges in `ListingCard` (props exist, hardcoded false today)
+- [ ] Archive/Delete UI on listing detail page for `status=removed` listings
+- [ ] "Show removed listings" toggle in `/all` table
+
+### Phase 6 — AI Improvements + Tests
+- [ ] Vitest setup (`vitest.config.ts`, test scripts in `package.json`)
+- [ ] Unit tests for `src/ranking/deterministic.ts` (hardFilter, all scoring functions)
+- [ ] Integration test for `src/lib/ingest.ts` (deduplication with in-memory SQLite fixture)
+- [ ] CI workflow updated to run `pnpm test` before deploying
+- [ ] `AIProvider` interface (`src/ranking/ai-provider.ts`) + refactor `llm.ts` to use it
+- [ ] `ClaudeProvider` — Anthropic SDK (existing logic, wrapped in interface)
+- [ ] `ClaudeCLIProvider` — `claude -p` subprocess for demo mode without SDK key
+- [ ] `AI_PROVIDER` env var for zero-code provider switching
+- [ ] `interest_level` column on `listings` table (migration + UI thumbs up/down)
+- [ ] Feedback loop: include user-rated listings as few-shot examples in Claude prompt
+- [ ] Price signal injection: pass snapshot delta to Claude ("dropped R$50k in 45 days")
+
+### Phase 7 — Polish
+- [ ] Price history chart on listing detail page (Mantine chart or recharts)
+- [ ] Neighborhood notes field in filter profile (freetext, fed into Claude prompt)
+- [ ] Mobile layout review and fixes
+- [ ] Export listings as CSV from `/all` page
+
+---
+
+## Testing & Reliability Strategy
+
+Testing is integrated into phases, not deferred to the end. Each layer has a different approach appropriate to its risk level.
+
+### What can break and how to catch it
+
+| Failure | Detection | Response |
+|---------|-----------|----------|
+| Scraper returns 0 listings (portal API changed) | Zero-result guard in scraper base | Log as error in `scrape_runs`, include in failure email |
+| Scraper returns far fewer results than usual | Threshold check vs. rolling average | Warning in failure email |
+| Ranking produces wrong scores | Unit tests on deterministic scoring functions | CI fails on PR |
+| Deduplication creates phantom duplicates | Integration test with fixture data | CI fails on PR |
+| Email never sends | Failure email on any uncaught error in pipeline | Check `scrape_runs.status = error` in UI |
+| Cron silently stops firing | GitHub Actions run history | Check manually weekly or set up GH notification |
+| Fly.io app is down | Health check endpoint polled by UptimeRobot (free) | UptimeRobot sends alert email |
+| SQLite volume full | Disk usage check in health endpoint | Alert before it hits 90% |
+
+---
+
+### Unit Tests (added in Phase 6)
+
+**What to test:** Pure functions with no I/O. The deterministic ranking logic is the highest-value target.
+
+**Framework:** Vitest (fast, native TypeScript, same config as Next.js)
+
+**Files to cover:**
+
+```
+src/ranking/deterministic.ts
+  - hardFilter: eliminates listings outside criteria
+  - scorePrice: correct points at min, max, midpoint, outside range
+  - scoreArea: bonus at 1.5x threshold
+  - scoreBedrooms: correct points above/at/below minimum
+  - scoreCondoFee: correct gradient from 0 to max
+  - scoreNeighborhood: matched vs unmatched vs no preference
+
+src/lib/ingest.ts
+  - normalizeAddress: accents, punctuation, case
+  - buildDedupeKey: same physical apartment from two portals → same key
+  - buildDedupeKey: fallback to source:id when address missing
+  - Two listings with same key → only one row inserted, source merged
+```
+
+**What NOT to unit test:** Scrapers (network-dependent), Claude ranking (LLM output is non-deterministic), database queries (covered by integration test).
+
+---
+
+### Integration Test (added in Phase 6)
+
+One integration test that runs the full ingest pipeline against a real in-memory SQLite database using fixture data:
+
+```
+tests/ingest.integration.test.ts
+  - Given 3 raw listings from VivaReal and 2 from ZAP (2 are the same apartment)
+  - After ingest: 4 listings in DB, not 5
+  - The merged listing has 2 rows in listing_sources
+  - Re-running ingest with same data: counts don't change (idempotent)
+  - Price change on second run: new snapshot inserted, listing.price updated
+```
+
+---
+
+### Scraper Health Guard (added in Phase 2)
+
+In `BaseScraper`, after each run, compare results against the last successful run for the same source:
+
+```typescript
+// If scraper previously returned >50 listings and now returns 0 — something is wrong
+if (previousCount > 50 && currentCount === 0) {
+  throw new ScraperHealthError(`${this.name}: 0 results, expected ~${previousCount}`);
+}
+```
+
+This catches silent API breakage without any external monitoring service.
+
+---
+
+### Health Check Endpoint (added in Phase 2)
+
+`GET /api/health` — used by Fly.io liveness probe and UptimeRobot:
+
+```json
+{
+  "status": "ok",
+  "db": "ok",
+  "lastScrapeRun": "2026-04-30T10:00:00Z",
+  "lastScrapeStatus": "success",
+  "listingsActive": 843,
+  "diskUsageMb": 42
+}
+```
+
+Returns HTTP 200 when healthy, 503 when DB is unreachable or last scrape errored.
+
+---
+
+### Failure Email (added in Phase 3)
+
+The notification pipeline sends two types of email:
+
+- **Success:** daily digest with top new listings (only when `listings_new > 0`)
+- **Failure:** plain-text alert whenever `scrape_runs.status = error`, including the error message and which scraper failed
+
+This means if the cron fires but something breaks, you find out the same morning instead of noticing your inbox has been empty for a week.
+
+---
+
+### CI Pipeline (added in Phase 2)
+
+`.github/workflows/ci.yml` runs on every push and PR:
+
+```
+1. pnpm install
+2. pnpm typecheck       (tsc --noEmit)
+3. pnpm lint            (ESLint)
+4. pnpm test            (Vitest — unit + integration tests)
+```
+
+The daily scrape workflow only runs if CI passes on `main`.
+
+---
+
+### Manual Smoke Test Checklist (run after each phase deploy)
+
+- [ ] Visit app URL — home page loads with listings
+- [ ] Trigger scrape manually via UI button — run completes with `status=success`
+- [ ] Check `/runs` — new run appears with correct counts
+- [ ] Check `/api/health` — returns 200 with `status: ok`
+- [ ] Check email inbox — digest or no-new-listings message received
+- [ ] Check Fly.io logs — no uncaught errors in output
+
+---
+
 ## Decisions Made
 
 | Decision | Choice | Notes |
