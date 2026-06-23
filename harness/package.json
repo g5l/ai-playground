@@ -1,0 +1,19 @@
+{
+  "name": "harness",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "poc-01": "npx tsx --env-file=.env bare-call/poc-01-bare-call.ts",
+    "poc-02": "npx tsx --env-file=.env conversation-loop/poc-02-conversation-loop.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "openai": "^4.98.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "@types/node": "^22.10.7"
+  }
+}
