@@ -26,7 +26,7 @@ async function main() {
     const response = await client.chat.completions.create({
       model: MODEL,
       max_completion_tokens: 1024,
-      messages, // <-- the whole array, not just the latest message
+      messages,
     });
 
     messages.push(response.choices[0].message);
