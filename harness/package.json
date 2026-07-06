@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "poc-01": "npx tsx --env-file=.env bare-call/poc-01-bare-call.ts",
-    "poc-02": "npx tsx --env-file=.env conversation-loop/poc-02-conversation-loop.ts"
+    "poc-02": "npx tsx --env-file=.env conversation-loop/poc-02-conversation-loop.ts",
+    "poc-03": "npx tsx --env-file=.env agent-loop/poc-03-agent-loop.ts"
   },
   "dependencies": {
     "dotenv": "^16.5.0",
