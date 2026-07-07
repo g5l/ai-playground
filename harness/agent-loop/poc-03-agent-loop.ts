@@ -46,31 +46,27 @@ async function runAgent(userPrompt: string) {
     { role: "user", content: userPrompt },
   ];
 
-  const MAX_ITERATIONS = 10; // safety cap so a confused model can't loop forever
+  const MAX_ITERATIONS = 10;
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     console.log(`\n--- iteration ${i + 1}: calling model ---`);
 
     const response = await client.chat.completions.create({
       model: MODEL,
       max_completion_tokens: 1024,
-      tools, // <-- we advertise the tools every call
+      tools,
       messages,
     });
 
     const choice = response.choices[0];
     console.log("finish_reason:", choice.finish_reason);
-
-    // Always record the assistant's full turn (text + any tool_calls).
+    
     messages.push(choice.message);
 
-    // If the model did NOT ask for a tool, it's done. Print and exit the loop.
     if (choice.finish_reason !== "tool_calls") {
       console.log("\n✅ final answer:", choice.message.content ?? "");
       return;
     }
-
-    // Otherwise: execute every tool_call the model requested, in order.
-    // (The model can request several at once — handle all of them.)
+    
     for (const toolCall of choice.message.tool_calls ?? []) {
       const { name, arguments: argsJson } = toolCall.function;
       const input = JSON.parse(argsJson);
@@ -83,7 +79,6 @@ async function runAgent(userPrompt: string) {
         : `Error: unknown tool "${name}"`;
       console.log(`   → result: ${resultText}`);
 
-      // CRITICAL: tool_call_id MUST match the id the model gave us.
       messages.push({
         role: "tool",
         tool_call_id: toolCall.id,
@@ -91,8 +86,6 @@ async function runAgent(userPrompt: string) {
       });
     }
 
-    // Loop — the model now "sees" the tool output and continues
-    // (often producing the final answer next).
   }
 
   console.log("\n⚠️ hit MAX_ITERATIONS without finishing.");
